@@ -1,2 +1,7 @@
-# latte
+## Latte
 
+Frappe Latte
+
+#### License
+
+MIT
