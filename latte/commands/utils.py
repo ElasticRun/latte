@@ -5,9 +5,23 @@ import os
 import frappe
 from watchgod import run_process
 from frappe.commands import get_site, pass_context
+from frappe.exceptions import AppNotInstalledError
+
+def get_installed_apps():
+	with open(os.path.abspath('./apps.txt')) as f:
+		apps = f.read().split('\n')
+	return apps
+
+def patch_all():
+	for app in get_installed_apps():
+		try:
+			pass
+			# frappe.get_attr(f'{app}.monkey_patches')
+		except (AttributeError, AppNotInstalledError):
+			pass
 
 def start_background_worker(queue, quiet):
-	import withrun_erpnext
+	patch_all()
 	from frappe.utils.background_jobs import start_worker
 	print('Starting latte patched worker at', queue)
 	start_worker(queue, quiet)
@@ -57,11 +71,11 @@ def serve(port=None, profile=False, no_reload=False, sites_path='.', site=None):
 @pass_context
 def console(context):
 	"Start ipython console for a site"
+	patch_all()
 	site = get_site(context)
 	frappe.init(site=site)
 	frappe.connect()
 	frappe.local.lang = frappe.db.get_default("lang")
-	import withrun_erpnext
 	import IPython
 	IPython.embed(display_banner = "")
 

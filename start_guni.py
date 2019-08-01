@@ -5,7 +5,8 @@ import sys
 from gunicorn.app.wsgiapp import run
 from gevent import monkey
 monkey.patch_all()
-import withrun_erpnext
+from latte.commands.utils import patch_all
+patch_all()
 sys.argv += [
     '-t', '120',
     'frappe.app:application',
@@ -23,6 +24,5 @@ sys.argv += [
         "response_length":%(B)s
     }'''
 ]
-print(sys.argv)
 if __name__ == '__main__':
     sys.exit(run())
