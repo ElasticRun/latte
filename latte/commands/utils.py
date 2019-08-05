@@ -2,10 +2,27 @@
 
 import click
 import os
-import frappe
+# import frappe
+import importlib
+import sys
 from watchgod import run_process
-from frappe.commands import get_site, pass_context
-from frappe.exceptions import AppNotInstalledError
+from functools import wraps
+from latte import _dict
+
+def pass_context(f):
+	@wraps(f)
+	def _func(ctx, *args, **kwargs):
+		return f(_dict(ctx.obj), *args, **kwargs)
+
+	return click.pass_context(_func)
+
+def get_site(context):
+	try:
+		site = context.sites[0]
+		return site
+	except (IndexError, TypeError):
+		print('Please specify --site sitename')
+		sys.exit(1)
 
 def get_installed_apps():
 	with open(os.path.abspath('./apps.txt')) as f:
@@ -15,10 +32,11 @@ def get_installed_apps():
 def patch_all():
 	for app in get_installed_apps():
 		try:
+			importlib.import_module(f'{app}.monkey_patches')
+		except ModuleNotFoundError:
 			pass
-			# frappe.get_attr(f'{app}.monkey_patches')
-		except (AttributeError, AppNotInstalledError):
-			pass
+		else:
+			print(f'Loaded monkey patches from app {app}')
 
 def start_background_worker(queue, quiet):
 	patch_all()
@@ -57,7 +75,7 @@ def serve(port=None, profile=False, no_reload=False, sites_path='.', site=None):
 	print('Starting latte patched server at', guni_path)
 	additional_flags = []
 	if port:
-		additional_flags += ['-b', f'{port}']
+		additional_flags += ['-b', f'0.0.0.0:{port}']
 
 	if not no_reload:
 		additional_flags += ['--reload']
@@ -73,14 +91,36 @@ def console(context):
 	"Start ipython console for a site"
 	patch_all()
 	site = get_site(context)
+	import frappe
 	frappe.init(site=site)
 	frappe.connect()
 	frappe.local.lang = frappe.db.get_default("lang")
 	import IPython
 	IPython.embed(display_banner = "")
 
+
+@click.command('redis-flush-on-reload')
+@pass_context
+def watch_for_flush(context):
+	"Flushes redis cache on reload"
+	site = get_site(context)
+	run_process(
+		'../apps/',
+		flushall,
+		args=(site,),
+		min_sleep=4000,
+		callback=show_changes,
+	)
+
+def flushall(site):
+	import frappe
+	frappe.init(site=site)
+	print('Flushing redis cache')
+	frappe.cache().flushall()
+
 commands = [
 	latte_worker,
 	serve,
-	console
+	console,
+	watch_for_flush,
 ]
