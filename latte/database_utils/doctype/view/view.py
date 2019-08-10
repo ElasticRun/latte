@@ -19,7 +19,6 @@ class View(Document):
 		self.create_view()
 
 	def create_view(self):
-		frappe.only_for('System Manager')
 		ctx = {
 			row.key: (row.value or '') for row in self.ctx
 		}
