@@ -10,19 +10,20 @@ variables:
   "group.id": "er-frappe-docker-spine-client",
   "request.required.acks": "1"
  }'
+ 
 dev-erlatte-build:
   stage: build
   script:
     - pwd
     - ./build-latte11.sh ${CI_COMMIT_REF_NAME:-develop}
   only:
-    - docker
     - develop
     - master
     - beta-realease
     - release
   tags:
-    - build-srv
+    - build-srv 
+    - beta 
 
 
 beta-erfrappe-deploy:
@@ -30,10 +31,10 @@ beta-erfrappe-deploy:
   script:
     - docker push dock.elasticrun.in/er-latte11-base:${CI_COMMIT_REF_NAME:-develop}
   only:
-    - docker
     - develop
     - master
     - beta-realease
     - release
   tags:
-    - build-srv
+    - build-srv 
+    - beta 
