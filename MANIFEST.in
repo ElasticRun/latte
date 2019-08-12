@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include latte *.css
+recursive-include latte *.csv
+recursive-include latte *.html
+recursive-include latte *.ico
+recursive-include latte *.js
+recursive-include latte *.json
+recursive-include latte *.md
+recursive-include latte *.png
+recursive-include latte *.py
+recursive-include latte *.svg
+recursive-include latte *.txt
+recursive-exclude latte *.pyc
