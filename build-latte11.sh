@@ -1,6 +1,6 @@
 #! /bin/bash
 TAG=$1
-export GIT_LATTE_URL=engg.elasticrun.in/with-run/latte.git
+export GIT_LATTE_URL=engg.elasticrun.in/platform-foundation/latte.git
 export LATTE_BRANCH=${CI_COMMIT_REF_NAME:-develop}
 # Uses default frappe and bench master branches from github to build the docker image. Use own URLs to override.
 #Temporarily uses docker branch from development project - not from deployment project.
