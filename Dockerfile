@@ -17,4 +17,4 @@ ENV LATTE_URL=https://${GIT_AUTH_USER}${GIT_AUTH_PASSWORD:+:}${GIT_AUTH_PASSWORD
 # Get-app latte
 USER frappe
 ARG CUR_DATE=2019-08-12
-RUN cd /home/frappe/docker-bench && bench get-app --branch ${LATTE_BRANCH} ${ERP_URL} && rm -rf /home/frappe/docker-bench/apps/latte/.git*
+RUN cd /home/frappe/docker-bench && bench get-app --branch ${LATTE_BRANCH} ${LATTE_URL} && rm -rf /home/frappe/docker-bench/apps/latte/.git*
