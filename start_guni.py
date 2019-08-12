@@ -23,7 +23,8 @@ SIMPLE_FORMAT = '%(m)s %(U)s %(q)s := %(s)s | %(D)s | %(B)s'
 sys.argv += [
     '-t', '120',
     'latte.app:application',
-    '--worker-connections', '20',
+    '--worker-connections', '50',
+    '-w', '4',
     '-k', 'gevent',
     '--access-logfile', '-',
     '--access-logformat', SIMPLE_FORMAT,
