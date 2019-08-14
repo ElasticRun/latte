@@ -14,6 +14,7 @@ ARG GIT_LATTE_URL=engg.elasticrun.in/with-run/with-run-deployment/latte.git
 
 ENV LATTE_URL=https://${GIT_AUTH_USER}${GIT_AUTH_PASSWORD:+:}${GIT_AUTH_PASSWORD}${GIT_AUTH_USER:+@}${GIT_LATTE_URL}
 
+RUN cd /home/frappe/docker-bench && ./env/bin/pip install pygelf watchgod
 # Get-app latte
 USER frappe
 ARG CUR_DATE=2019-08-12
