@@ -1,0 +1,21 @@
+{
+ "content": null,
+ "creation": "2019-08-21 10:25:15.549939",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "",
+ "idx": 0,
+ "modified": "2019-08-21 10:25:15.549939",
+ "modified_by": "Administrator",
+ "module": "Latte",
+ "name": "wr-dashboard",
+ "owner": "Administrator",
+ "page_name": "WR Dashboard",
+ "restrict_to_domain": "",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": ""
+}

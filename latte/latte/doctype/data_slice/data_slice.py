@@ -6,5 +6,8 @@ from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
 
+
 class DataSlice(Document):
-	pass
+
+    def execute(self):
+        return "execute1 called"
