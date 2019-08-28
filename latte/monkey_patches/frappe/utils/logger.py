@@ -1,13 +1,18 @@
 import frappe
 import frappe.utils.logger
-import logging
-from pygelf import GelfUdpHandler
 import uuid
+import logging
+from logging.handlers import RotatingFileHandler
+from pygelf import GelfUdpHandler
 from six import string_types
 
 old_get_logger = frappe.utils.logger.get_logger
 
 class CustomAttributes(logging.Filter):
+	def __init__(self, *args, modulename=None, **kwargs):
+		self.__module = modulename
+		super().__init__(*args, **kwargs)
+
 	def filter(self, record):
 		if frappe.local.conf.log_level == "debug":
 			print(record.msg)
@@ -29,6 +34,7 @@ class CustomAttributes(logging.Filter):
 			record.request_id_type = 'Created'
 
 		record.request_id = request_id
+		record.module = self.__module
 		record.log_number = frappe.local.flags.request_id_number
 		record.site = getattr(frappe.local, 'site', None)
 
@@ -47,21 +53,36 @@ def get_logger(module, with_more_info=False):
 
 	if getattr(logger, '__patched', None):
 		return logger
-
-	logstash_config = frappe.local.conf.logstash
-	if not logstash_config:
-		return logger
-
-	logstash_gelf_host = logstash_config.get('host', '127.0.0.1')
-	logstash_gelf_port = logstash_config.get('port', 32000)
-	gelf_handler = GelfUdpHandler(host=logstash_gelf_host, port=logstash_gelf_port, include_extra_fields=True)
 	logger.__patched = True
-	logger.addFilter(CustomAttributes())
-	logger.addHandler(gelf_handler)
+
+	logger_type = frappe.local.conf.logger_type
+	logger.addFilter(CustomAttributes(module))
+
+	handler = None
+	if logger_type == 'file':
+		handler = RotatingFileHandler(
+			'../logs/frappe.log',
+			maxBytes=100 * 1024 * 1024,
+			backupCount=10,
+		)
+	else:
+		handler = get_gelf_handler()
+
+	logger.addHandler(handler)
 	logger.setLevel(logging.DEBUG)
 	logger.propagate = True
 	formatter = logging.Formatter('%(message)s')
-	gelf_handler.setFormatter(formatter)
+	handler.setFormatter(formatter)
 	return logger
+
+
+def get_gelf_handler():
+	gelf_config = frappe.local.conf.gelf_config
+	if not gelf_config:
+		return frappe.throw('Gelf config not found but expected')
+
+	gelf_gelf_host = gelf_config.get('host', '127.0.0.1')
+	gelf_gelf_port = gelf_config.get('port', 32000)
+	return GelfUdpHandler(host=gelf_gelf_host, port=gelf_gelf_port, include_extra_fields=True)
 
 frappe.utils.logger.get_logger = get_logger
