@@ -59,14 +59,14 @@ def get_logger(module, with_more_info=False):
 	logger.addFilter(CustomAttributes(module))
 
 	handler = None
-	if logger_type == 'file':
+	if logger_type != 'file':
+		handler = get_gelf_handler()
+	else:
 		handler = RotatingFileHandler(
 			'../logs/frappe.log',
 			maxBytes=100 * 1024 * 1024,
 			backupCount=10,
 		)
-	else:
-		handler = get_gelf_handler()
 
 	logger.addHandler(handler)
 	logger.setLevel(logging.DEBUG)
