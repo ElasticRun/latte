@@ -26,7 +26,7 @@ def get_site(context):
 
 def get_installed_apps():
 	with open(os.path.abspath('./apps.txt')) as f:
-		apps = f.read().split('\n')
+		apps = [app for app in f.read().split('\n') if app]
 	return apps
 
 def patch_all():

@@ -1,7 +1,5 @@
 import frappe
 from frappe.database import Database
-from kafka import KafkaProducer
-from kafka.errors import KafkaError
 from json import dumps
 from frappe.utils.background_jobs import enqueue
 from six import string_types

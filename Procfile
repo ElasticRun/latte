@@ -14,4 +14,5 @@ worker_default: bench worker --queue default --quiet
 worker_fact: bench worker --queue fact --quiet
 #migrator: bench migrate
 #worker_event_dispatcher: bench eventdispatcher --queue kafka_events
+async_event_dispatcher: bench aio-eventdispatcher --queue long
 #worker_json_worker: bench jsonworker --queue kafka_events

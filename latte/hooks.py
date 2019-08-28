@@ -117,6 +117,11 @@ app_include_js = "/assets/latte/js/latte.js"
 # Overriding Whitelisted Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "latte.event.get_events"
-# }
+override_whitelisted_methods = {
+    # "frappe.desk.doctype.event.event.get_events": "latte.event.get_events"
+    "frappe.desk.reportview.get": "latte.overrides.desk.reportview.patched_get",
+}
+
+after_migrate = [
+    'latte.utils.indexing.index_all',
+]
