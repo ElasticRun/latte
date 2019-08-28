@@ -11,6 +11,7 @@ from markdown2 import UnicodeWithAttrs
 from pymysql.times import TimeDelta
 from pymysql.constants import ER, FIELD_TYPE
 from pymysql.converters import conversions
+from latte.utils.background.job import enqueue
 
 allowed_seq_names = re.compile('[a-z0-9A-Z_]')
 con_pool = None
@@ -58,12 +59,12 @@ def getseries(naming_series, digits, failures):
             # print('NEXT_VAL=', next_val)
         except IndexError:
             return getseries(naming_series, digits, failures + 1)
-        frappe.utils.background_jobs.enqueue(
+        enqueue(
             update_series_table,
             key=naming_series,
             value=next_val,
             enqueue_after_commit=True,
-            queue='fact',
+            monitor=False,
         )
     except ProgrammingError as e:
         if e.args[0] == 1146: #sequence not present

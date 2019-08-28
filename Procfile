@@ -8,10 +8,10 @@ watch: bench watch
 flusher: bench redis-flush-on-reload
 
 schedule: bench schedule
-worker_short: bench worker --queue short --quiet
-worker_long: bench worker --queue long --quiet
-worker_default: bench worker --queue default --quiet
-worker_fact: bench worker --queue fact --quiet
+worker_short: bench worker --queue short
+worker_long: bench worker --queue long
+worker_default: bench worker --queue default
+worker_fact: bench worker --queue fact
 #migrator: bench migrate
 #worker_event_dispatcher: bench eventdispatcher --queue kafka_events
 async_event_dispatcher: bench aio-eventdispatcher --queue long

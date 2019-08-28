@@ -4,8 +4,9 @@ import os
 from frappe.utils import cstr
 from frappe.utils.background_jobs import get_queue, queue_timeout
 from six import string_types
+from types import FunctionType, MethodType
 
-def enqueue(method, queue='default', timeout=None, event=None, job_run_id=None,
+def enqueue(method, queue='default', timeout=None, event=None, monitor=True,
 	is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
 	'''
 		Enqueue method to be executed using a background worker
@@ -28,6 +29,9 @@ def enqueue(method, queue='default', timeout=None, event=None, job_run_id=None,
 	q = get_queue(queue, is_async=is_async)
 	if not timeout:
 		timeout = queue_timeout.get(queue) or 300
+
+	job_run_id = monitor and create_job_run(method, queue)
+
 	queue_args = {
 		"site": frappe.local.site,
 		"user": frappe.session.user,
@@ -45,13 +49,17 @@ def enqueue(method, queue='default', timeout=None, event=None, job_run_id=None,
 		frappe.flags.enqueue_after_commit.append({
 			"queue": queue,
 			"is_async": is_async,
+			"q": q,
 			"timeout": timeout,
 			"queue_args": queue_args,
 		})
 		return frappe.flags.enqueue_after_commit
 	else:
-		return q.enqueue_call(execute_job, timeout=timeout,
-			kwargs=queue_args)
+		return q.enqueue_call(
+			execute_job,
+			timeout=timeout,
+			kwargs=queue_args,
+		)
 
 def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True, retry=0, job_run_id=None):
 	'''Executes job in a worker, performs commit/rollback and logs if there is any error'''
@@ -92,3 +100,18 @@ def set_job_status(job_id, status):
 	if not job_id:
 		return
 	frappe.set_value('Job Run', job_id, 'status', status)
+
+def create_job_run(method, queue):
+	if type(method) in (FunctionType, MethodType):
+		method = f'{method.__module__}.{method.__name__}'
+	else:
+		method = str(method)
+
+	return frappe.get_doc({
+		'doctype': 'Job Run',
+		'method': method,
+		'title': method,
+		'status': 'Enqueued',
+		'enqueued_at': frappe.utils.now_datetime(),
+		'queue_name': queue,
+	}).insert(ignore_permissions=True).name

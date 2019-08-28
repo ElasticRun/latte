@@ -11,7 +11,7 @@ from latte.latte_core.report.executed_background_jobs.executed_background_jobs \
 	import execute as get_scheduled_jobs
 import pandas as pd
 from frappe.utils.background_jobs import get_jobs, enqueue
-from frappe.utils.scheduler import create_job_run
+from latte.utils.background.job import create_job_run
 
 class JobRun(Document):
 	def autoname(self):
@@ -58,3 +58,9 @@ def retry_job(method, queue):
 # 	sys.save()
 # 	frappe.db.commit()
 # 	frappe.get_attr('frappe.utils.scheduler.enqueue_events_for_all_sites')()
+
+def remove_old_logs():
+	frappe.db.sql('delete from `tabJob Run` where run_date <= %(today)s - interval 4 day', {
+		'today': frappe.utils.nowdate(),
+	})
+	frappe.db.commit()

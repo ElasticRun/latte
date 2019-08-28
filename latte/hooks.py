@@ -109,6 +109,14 @@ app_include_js = "/assets/latte/js/latte.js"
 # 	]
 # }
 
+scheduler_events = {
+    "cron": {
+        "0 3 * * *": [
+            'latte.latte_core.doctype.job_run.job_run.remove_old_logs'
+        ]
+    }
+}
+
 # Testing
 # -------
 
