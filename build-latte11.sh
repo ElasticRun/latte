@@ -8,3 +8,5 @@ echo "Kafka Config : '${KAFKA_CONFIG}'"
 docker build -f Dockerfile --build-arg CUR_DATE=$(date +%Y-%m-%d:%H:%M:%S) --build-arg KAFKA_CONFIG='${KAFKA_CONFIG}' \
   --build-arg LATTE_BRANCH=${LATTE_BRANCH} --build-arg GIT_LATTE_URL=${GIT_LATTE_URL} \
   -t dock.elasticrun.in/er-latte11-base:${TAG} .
+  #--add-host=files.pythonhosted.org:151.101.9.63 \
+

@@ -69,7 +69,7 @@ def get_logger(module, with_more_info=False):
 	handler = None
 	if logger_type != 'file':
 		handler = get_gelf_handler()
-	else:
+	if not handler:
 		handler = RotatingFileHandler(
 			'../logs/frappe.log',
 			maxBytes=100 * 1024 * 1024,
@@ -87,7 +87,7 @@ def get_logger(module, with_more_info=False):
 def get_gelf_handler():
 	gelf_config = frappe.local.conf.gelf_config
 	if not gelf_config:
-		return frappe.throw('Gelf config not found but expected')
+		return
 
 	gelf_gelf_host = gelf_config.get('host', '127.0.0.1')
 	gelf_gelf_port = gelf_config.get('port', 32000)
