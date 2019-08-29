@@ -5,6 +5,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pygelf import GelfUdpHandler
 from six import string_types
+from frappe.model.document import Document
 
 old_get_logger = frappe.utils.logger.get_logger
 
@@ -14,32 +15,39 @@ class CustomAttributes(logging.Filter):
 		super().__init__(*args, **kwargs)
 
 	def filter(self, record):
+		message = frappe._dict()
+		logged_msg = record.msg
 		if frappe.local.conf.log_level == "debug":
-			print(record.msg)
+			print(message.msg)
 
-		if not isinstance(record.msg, string_types):
-			record.msg = frappe.as_json(record.msg)
+		if isinstance(logged_msg, dict):
+			message.update(logged_msg)
+		elif isinstance(logged_msg, Document):
+			message.update(logged_msg.as_dict())
+
 		request_id = None
 		frappe.local.flags.request_id_number = (frappe.local.flags.request_id_number or 0) + 1
 		if hasattr(frappe.local, 'request'):
 			request_id = frappe.local.request.headers.get('X-Request-Id')
-			record.request_id_type = 'From Header'
+			message.request_id_type = 'From Header'
 
 		if not request_id:
 			request_id = frappe.flags.request_id
-			record.request_id_type = 'From Flag'
+			message.request_id_type = 'From Flag'
 
 		if not request_id:
 			request_id = frappe.flags.request_id = str(uuid.uuid4())
-			record.request_id_type = 'Created'
+			message.request_id_type = 'Created'
 
-		record.request_id = request_id
-		record.module = self.__module
-		record.log_number = frappe.local.flags.request_id_number
-		record.site = getattr(frappe.local, 'site', None)
+		message.request_id = request_id
+		message.module = self.__module
+		message.log_number = frappe.local.flags.request_id_number
+		message.site = getattr(frappe.local, 'site', None)
 
 		# WARNING: Dangerous if PII is present in system.
-		record.session = frappe.session
+		message.session = frappe.session
+
+		record.msg = frappe.as_json(message, indent=None)
 
 		return True
 
@@ -56,7 +64,7 @@ def get_logger(module, with_more_info=False):
 	logger.__patched = True
 
 	logger_type = frappe.local.conf.logger_type
-	logger.addFilter(CustomAttributes(module))
+	logger.addFilter(CustomAttributes(modulename=module))
 
 	handler = None
 	if logger_type != 'file':
@@ -71,8 +79,8 @@ def get_logger(module, with_more_info=False):
 	logger.addHandler(handler)
 	logger.setLevel(logging.DEBUG)
 	logger.propagate = True
-	formatter = logging.Formatter('%(message)s')
-	handler.setFormatter(formatter)
+	# formatter = logging.Formatter('%(message)s')
+	# handler.setFormatter(formatter)
 	return logger
 
 

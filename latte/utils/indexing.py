@@ -42,6 +42,7 @@ def create_index(table, columns, unique=False):
                 f"`{column_name}`{('(' + column_dict[column_name] + ')') if column_name in column_dict else ''}"
                 for column_name in columns
             ])
+            frappe.db.commit()
             frappe.db.sql(f'''
                 CREATE
                     {'unique' if unique else ''}

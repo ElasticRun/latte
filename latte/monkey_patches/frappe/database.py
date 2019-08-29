@@ -21,13 +21,13 @@ def log_explain(query, values):
         output_stream.close()
         try:
             explanation = frappe.db.sql(f'explain {query}', values or (), as_dict=1)
-            frappe.logger().debug(frappe.as_json({
+            frappe.logger().debug({
                 'stack': stack_trace,
                 'query': query,
                 'params': values,
                 'type': 'query_debug',
                 'explanation': explanation,
-            }))
+            })
         except Exception as e:
             print(query, values, e)
 

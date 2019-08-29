@@ -5,6 +5,7 @@ from frappe.utils import cstr
 from frappe.utils.background_jobs import get_queue, queue_timeout
 from six import string_types
 from types import FunctionType, MethodType
+from functools import wraps
 
 def enqueue(method, queue='default', timeout=None, event=None, monitor=True,
 	is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
@@ -115,3 +116,26 @@ def create_job_run(method, queue):
 		'enqueued_at': frappe.utils.now_datetime(),
 		'queue_name': queue,
 	}).insert(ignore_permissions=True).name
+
+fn_map = {}
+def background(**dec_args):
+	if 'enqueue_after_commit' not in dec_args:
+		dec_args['enqueue_after_commit'] = True
+	def decorator(fn):
+		key = f'{fn.__module__}.{fn.__name__}'
+		fn_map[key] = fn
+		def decorated(*pos_args, **kw_args):
+			return enqueue(
+				runner,
+				fn_key=key,
+				pos_args=pos_args,
+				kw_args=kw_args,
+				**dec_args,
+			)
+		return decorated
+	return decorator
+
+def runner(fn_key, pos_args, kw_args):
+	if fn_key not in fn_map:
+		frappe.get_attr(fn_key)
+	fn_map.get(fn_key)(*pos_args, **kw_args)
