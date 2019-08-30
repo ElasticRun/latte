@@ -4,3 +4,4 @@ croniter
 watchgod
 pymysql
 sqlalchemy
+pygelf
