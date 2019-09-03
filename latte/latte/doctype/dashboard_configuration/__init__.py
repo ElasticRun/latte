@@ -22,6 +22,10 @@ def run(dashboard_name=None, filters=None):
         slice_data.append({
             'name': data_slice.name,
             'data_slice_name': data_slice.data_slice,
+            'data_type': sD.data_type,
+            'dashboard_level': data_slice.dashboard_level,
+            'html_content': sD.html_content,
+            'priority': data_slice.priority,
             'result': sD.execute()
         })
     dashboard_configuration_data['data_slice_data'] = slice_data
