@@ -5,7 +5,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
-from latte.latte_core.naming.autoname import lockless_autoname
+# from latte.latte_core.naming.autoname import lockless_autoname
 from latte.utils.indexing import create_index
 from latte.latte_core.report.executed_background_jobs.executed_background_jobs \
 	import execute as get_scheduled_jobs
@@ -14,9 +14,9 @@ from frappe.utils.background_jobs import get_jobs, enqueue
 from latte.utils.background.job import create_job_run
 
 class JobRun(Document):
-	def autoname(self):
-		self.naming_series = 'JRUN-.#######'
-		return lockless_autoname(self)
+	# def autoname(self):
+	# 	self.naming_series = 'JRUN-.#######'
+	# 	return lockless_autoname(self)
 
 	def before_save(self):
 		self.run_date = frappe.utils.nowdate()
