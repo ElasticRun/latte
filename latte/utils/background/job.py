@@ -108,14 +108,16 @@ def create_job_run(method, queue):
 	else:
 		method = str(method)
 
-	return frappe.get_doc({
+	doc = frappe.get_doc({
 		'doctype': 'Job Run',
 		'method': method,
 		'title': method,
 		'status': 'Enqueued',
 		'enqueued_at': frappe.utils.now_datetime(),
 		'queue_name': queue,
-	}).insert(ignore_permissions=True).name
+	})
+	doc.db_insert()
+	return doc.name
 
 fn_map = {}
 def background(**dec_args):
