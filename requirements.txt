@@ -1,1 +1,7 @@
 frappe
+pandas
+croniter
+watchgod
+pymysql
+sqlalchemy
+pygelf
