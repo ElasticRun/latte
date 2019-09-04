@@ -100,7 +100,7 @@ def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True,
 def set_job_status(job_id, status):
 	if not job_id:
 		return
-	frappe.set_value('Job Run', job_id, 'status', status)
+	frappe.db.set_value('Job Run', job_id, 'status', status)
 
 def create_job_run(method, queue):
 	if type(method) in (FunctionType, MethodType):
