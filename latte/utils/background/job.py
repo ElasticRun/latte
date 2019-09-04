@@ -100,7 +100,7 @@ def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True,
 def set_job_status(job_id, status):
 	if not job_id:
 		return
-	frappe.set_value('Job Run', job_id, 'status', status)
+	frappe.db.set_value('Job Run', job_id, 'status', status)
 
 def create_job_run(method, queue):
 	if type(method) in (FunctionType, MethodType):
@@ -108,14 +108,21 @@ def create_job_run(method, queue):
 	else:
 		method = str(method)
 
-	return frappe.get_doc({
+	if not frappe.get_all('Job Watchman', filters={
+		'method': method,
+	}):
+		return
+
+	doc = frappe.get_doc({
 		'doctype': 'Job Run',
 		'method': method,
 		'title': method,
 		'status': 'Enqueued',
 		'enqueued_at': frappe.utils.now_datetime(),
 		'queue_name': queue,
-	}).insert(ignore_permissions=True).name
+	})
+	doc.db_insert()
+	return doc.name
 
 fn_map = {}
 def background(**dec_args):
