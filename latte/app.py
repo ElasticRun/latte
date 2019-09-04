@@ -61,6 +61,7 @@ def application(request):
 		log_info.request_end = frappe.utils.now_datetime()
 		log_info.turnaround_time = (log_info.request_end - log_info.request_start).total_seconds()
 		log_info.cmd = frappe.local.form_dict.cmd
+		log_info.type = 'request_log'
 		frappe.logger().debug(log_info)
 		frappe.destroy()
 
