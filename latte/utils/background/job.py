@@ -108,6 +108,11 @@ def create_job_run(method, queue):
 	else:
 		method = str(method)
 
+	if not frappe.get_all('Job Watchman', filters={
+		'job_name': method,
+	}):
+		return
+
 	doc = frappe.get_doc({
 		'doctype': 'Job Run',
 		'method': method,
