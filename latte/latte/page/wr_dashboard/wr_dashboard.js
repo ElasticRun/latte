@@ -12,7 +12,19 @@ frappe.pages['wr-dashboard'].on_page_load = function (wrapper) {
 		frappe.wrdashboard.show();
 	});
 
+	frappe.ui.form.on('WR Dashboard', {
+		refresh: function (frm) {
+			frm.add_custom_button(__("Refresh"), () => console.log("Refresh Called"));
+		}
+	});
+
 };
+
+// frappe.ui.form.on('WR Dashboard', {
+// 	refresh: function (frm) {
+// 		frm.add_custom_button(__("Refresh"), () => console.log("Refresh Called"));
+// 	}
+// });
 
 class Dashboard {
 
@@ -36,9 +48,9 @@ class Dashboard {
 		</style>
 		<div class="dashboard">
 			<div class="filterdata row" style="margin-top:10px;"></div>
-			<div class="hr1 row" style="margin-top:10px;"></div>
-			<div class="hr2 row" style="margin-top:10px;"></div>
-			<div class="hr3 row" style="margin-top:10px;"></div>
+			<div class="hr1 row"></div>
+			<div class="hr2 row"></div>
+			<div class="hr3 row"></div>
 		</div>
 		`).appendTo(this.wrapper.find(".page-content").empty());
 		this.filterdata = this.wrapper.find(".filterdata");
@@ -85,8 +97,8 @@ class Dashboard {
 			const hr1SliceData = [], hr2SliceData = [], hr3SliceData = [];
 			for (let i = 0; i < sliceData.length; i++) {
 				const dataSlice = sliceData[i];
-				dataSlice.id_name = dataSlice.data_slice_name.replace(' ', '_');
-
+				dataSlice.id_name = dataSlice.data_slice_name.replace(/ /g, '_');
+				
 				switch (dataSlice.dashboard_level) {
 					case 'HR1': {
 						hr1SliceData.push(dataSlice);
@@ -100,8 +112,6 @@ class Dashboard {
 					}
 				}
 			}
-			console.log("hr1SliceData", hr1SliceData);
-
 
 			this.generateRowTemplate(hr1SliceData, this.hr1);
 			this.generateRowTemplate(hr2SliceData, this.hr2);
@@ -122,7 +132,7 @@ class Dashboard {
 					break;
 				}
 				case 'Table': {
-					const tableObj = new DashboardTable(sliceData, container);
+					new DashboardTable(sliceData, container);
 					break;
 				}
 			}
@@ -157,6 +167,8 @@ class DashboardCount {
 	getUiTemplate(col = 3) {
 		let div = document.createElement("div");
 		div.setAttribute("class", `col-xs-${col}`);
+		div.setAttribute("style", 'margin-top:10px;');
+
 		div.innerHTML = `
 				<div>
 					<div class="header">
@@ -491,27 +503,31 @@ class StationOpsGridView {
 class DashboardTable extends StationOpsGridView {
 	constructor(data, container) {
 		super();
-		this.columns = data.result.columns;
 		this.data = data;
 		this.container = container;
 		this.make_dom();
-		let res = this.data.result.result;
-		let createdData = []
-		for (let i = 0; i < res.length; i++) {
-			const element = res[i];
-			const x = {};
-			for (let j = 0; j < this.columns.length; j++) {
-				const key = this.columns[j];
-				x[key] = element[j]
+		let createdData = [];
+		if(this.data.data_source == "Report"){
+			this.columns = data.result.columns;
+			let res = this.data.result.result;
+			for (let i = 0; i < res.length; i++) {
+				const element = res[i];
+				const x = {};
+				for (let j = 0; j < this.columns.length; j++) {
+					const key = this.columns[j];
+					x[key] = element[j]
+				}
+				createdData.push(x);
 			}
-			createdData.push(x);
+		}else{
+			createdData = this.data.result;
 		}
 		super.make(`.${this.data.id_name}`, createdData);
 	}
 
 	make_dom() {
 		this.container.append(`
-      <div class="" style="margin:10px;">
+      <div class="" style="margin:20px 10px 10px 10px;">
         <div><h2>${this.data.data_slice_name}</h2></div>
         <div class="${this.data.id_name}" style="height:400px">
         </div>

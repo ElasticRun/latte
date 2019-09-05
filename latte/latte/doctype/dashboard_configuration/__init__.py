@@ -23,6 +23,7 @@ def run(dashboard_name=None, filters=None):
             'name': data_slice.name,
             'data_slice_name': data_slice.data_slice,
             'data_type': sD.data_type,
+            'data_source': sD.data_source,
             'dashboard_level': data_slice.dashboard_level,
             'html_content': sD.html_content,
             'priority': data_slice.priority,
