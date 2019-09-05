@@ -1,9 +1,15 @@
 frappe.provide('latte');
 
 async function capture_reason(document_type) {
+  // for new creation do not ask reason
+  if(cur_frm.doc.__islocal){
+    return
+  }
+
   const { message } = await frappe.db.get_value(document_type, {
     name: cur_frm.doc.name,
   }, 'disabled');
+
 
   if (message.disabled === cur_frm.doc.disabled) {
     return;
