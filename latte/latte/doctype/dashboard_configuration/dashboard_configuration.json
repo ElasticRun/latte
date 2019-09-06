@@ -106,7 +106,7 @@
  "issingle": 0,
  "istable": 0,
  "max_attachments": 0,
- "modified": "2019-08-21 09:58:36.720817",
+ "modified": "2019-09-06 13:08:36.196867",
  "modified_by": "Administrator",
  "module": "Latte",
  "name": "Dashboard Configuration",
@@ -133,7 +133,7 @@
    "write": 1
   }
  ],
- "quick_entry": 1,
+ "quick_entry": 0,
  "read_only": 0,
  "read_only_onload": 0,
  "restrict_to_domain": "",

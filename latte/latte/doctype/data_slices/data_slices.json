@@ -144,7 +144,7 @@
  "issingle": 0,
  "istable": 1,
  "max_attachments": 0,
- "modified": "2019-08-21 10:18:49.355916",
+ "modified": "2019-09-06 13:09:23.774847",
  "modified_by": "Administrator",
  "module": "Latte",
  "name": "Data Slices",
@@ -164,5 +164,5 @@
  "title_field": "",
  "track_changes": 1,
  "track_seen": 0,
- "track_views": 1
+ "track_views": 0
 }
