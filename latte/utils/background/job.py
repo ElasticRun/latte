@@ -7,8 +7,8 @@ from six import string_types
 from types import FunctionType, MethodType
 from functools import wraps
 
-def enqueue(method, queue='default', timeout=None, event=None, monitor=True,
-	is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
+def enqueue(method, queue='default', timeout=None, event=None, monitor=True, user=None,
+	method_name=None, is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
 	'''
 		Enqueue method to be executed using a background worker
 
@@ -35,8 +35,9 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True,
 
 	queue_args = {
 		"site": frappe.local.site,
-		"user": frappe.session.user,
+		"user": user or frappe.session.user,
 		"method": method,
+		"method_name": method_name,
 		"event": event,
 		"job_name": job_name or cstr(method),
 		"is_async": is_async,
@@ -62,7 +63,8 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True,
 			kwargs=queue_args,
 		)
 
-def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True, retry=0, job_run_id=None):
+def execute_job(site, method, event, job_name, kwargs,
+	method_name=None, user=None, is_async=True, retry=0, job_run_id=None):
 	'''Executes job in a worker, performs commit/rollback and logs if there is any error'''
 	from frappe.utils.scheduler import log
 
@@ -74,11 +76,12 @@ def execute_job(site, method, event, job_name, kwargs, user=None, is_async=True,
 		if user:
 			frappe.set_user(user)
 
-	if isinstance(method, string_types):
-		method_name = method
-		method = frappe.get_attr(method)
-	else:
-		method_name = cstr(method.__name__)
+	if not method_name:
+		if isinstance(method, string_types):
+			method_name = method
+			method = frappe.get_attr(method)
+		else:
+			method_name = cstr(method.__name__)
 
 	if job_run_id:
 		set_job_status(job_run_id, 'Started')
@@ -135,6 +138,7 @@ def background(**dec_args):
 			return enqueue(
 				runner,
 				fn_key=key,
+				method_name=key,
 				pos_args=pos_args,
 				kw_args=kw_args,
 				**dec_args,
