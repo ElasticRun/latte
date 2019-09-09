@@ -7,7 +7,7 @@ from six import string_types
 from types import FunctionType, MethodType
 from functools import wraps
 
-def enqueue(method, queue='default', timeout=None, event=None, monitor=True, user=None,
+def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set_user=None,
 	method_name=None, is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
 	'''
 		Enqueue method to be executed using a background worker
@@ -35,7 +35,7 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, use
 
 	queue_args = {
 		"site": frappe.local.site,
-		"user": user or frappe.session.user,
+		"user": set_user or frappe.session.user,
 		"method": method,
 		"method_name": method_name,
 		"event": event,
