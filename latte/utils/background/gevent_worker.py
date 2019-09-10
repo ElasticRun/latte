@@ -2,11 +2,12 @@ import gevent
 from gevent import monkey
 monkey.patch_all()
 import frappe
-from frappe.app import _sites_path as SITES_PATH
 import asyncio
 import aioredis
 import pickle
 import zlib
+from uuid import uuid4
+from frappe.app import _sites_path as SITES_PATH
 
 loop = asyncio.get_event_loop()
 
@@ -19,8 +20,8 @@ async def deque_and_enqueue(queue):
         print('Connecting')
         conn = await aioredis.create_connection('redis://localhost:11000', loop=loop)
         print('Connected')
-        async for job in fetch_jobs(conn, queue):
-            gevent.spawn(runner, job)
+        async for task in fetch_jobs(conn, queue):
+            task.process_task()
     finally:
         conn.close()
         await conn.wait_closed()
@@ -41,12 +42,34 @@ async def fetch_jobs(conn, queue):
             job_dict[job_meta[i]] = job_meta[i + 1]
 
         _, _, _, job_kwargs = pickle.loads(zlib.decompress(job_dict.data))
-        yield frappe._dict(job_kwargs)
+        yield Task(**job_kwargs)
 
-def runner(job_meta):
-    print('Processing', job_meta)
-    frappe.init(site=job_meta.site, sites_path=SITES_PATH)
+class Task(object):
+    def __init__(self, site, method, user, method_name, kwargs, **_):
+        self.id = str(uuid4())
+        self.site = site
+        self.method = method
+        self.user = user
+        self.method_name = method_name or f'{self.method.__module__}.{self.method.__name__}'
+        self.kwargs = kwargs
+
+    def process_task(self):
+        # TODO: Implement pooling logic here
+        gevent.spawn(runner, self)
+
+def runner(task):
+    frappe.init(site=task.site, sites_path=SITES_PATH)
     frappe.connect()
     frappe.local.lang = frappe.db.get_default('lang')
     frappe.db.connect()
-    job_meta.method(**job_meta.kwargs)
+    log = frappe.logger()
+    log.debug(f"Executing function {task.method_name} as part of task execution")
+    try:
+        task.method(**task.kwargs)
+        frappe.db.commit()
+    except:
+        frappe.db.rollback()
+        raise
+    finally:
+        frappe.destroy()
+    log.debug(f"Completed function execution for {task.method_name}")
