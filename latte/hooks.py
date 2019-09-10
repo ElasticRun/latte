@@ -111,6 +111,9 @@ app_include_js = "/assets/latte/js/latte.js"
 
 scheduler_events = {
     "cron": {
+        # "* * * * *": [
+        #     'latte.latte_core.doctype.lock.lock.remove_old_locks',
+        # ],
         "0 3 * * *": [
             'latte.latte_core.doctype.job_run.job_run.remove_old_logs'
         ]
@@ -128,6 +131,7 @@ scheduler_events = {
 override_whitelisted_methods = {
     # "frappe.desk.doctype.event.event.get_events": "latte.event.get_events"
     "frappe.desk.reportview.get": "latte.overrides.desk.reportview.patched_get",
+    "frappe.desk.query_report.run": "latte.overrides.desk.reportview.patched_run",
 }
 
 after_migrate = [

@@ -9,6 +9,7 @@ from watchgod import run_process
 from functools import wraps
 from latte import _dict
 
+
 def pass_context(f):
 	@wraps(f)
 	def _func(ctx, *args, **kwargs):
@@ -66,6 +67,30 @@ def latte_worker(queue, quiet=False, no_reload=False):
 		)
 	# start_worker(queue, quiet=quiet)
 
+@click.command('gevent-worker')
+@click.option('--queue', type=str)
+@click.option('--noreload', 'no_reload',is_flag=True, default=False)
+@click.option('--quiet', is_flag = True, default = False, help = 'Hide Log Outputs')
+def gevent_worker(queue, quiet=False, no_reload=False):
+	if not queue:
+		raise Exception('Cannot run worker without queue')
+	if no_reload:
+		start_gevent_background_worker(queue, quiet)
+	else:
+		run_process(
+			'../apps/',
+			start_gevent_background_worker,
+			args=(queue, quiet),
+			min_sleep=4000,
+			callback=show_changes,
+		)
+	# start_worker(queue, quiet=quiet)
+
+def start_gevent_background_worker(queue, quiet):
+	patch_all()
+	from latte.utils.background.gevent_worker import start
+	start(queue, quiet)
+
 @click.command('serve')
 @click.option('--port', default=8000)
 @click.option('--noreload', "no_reload", is_flag=True, default=False)
@@ -120,6 +145,7 @@ def flushall(site):
 
 commands = [
 	latte_worker,
+	gevent_worker,
 	serve,
 	console,
 	watch_for_flush,
