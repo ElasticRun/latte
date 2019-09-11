@@ -3,7 +3,7 @@ import inspect
 import pickle
 import gevent
 
-def cache_me_if_you_can(expiry=20):
+def cache_me_if_you_can(expiry=20, build_expiry=30):
     def decorator(fn):
         arg_names = inspect.getfullargspec(fn).args
         def decorated(*args, **kwargs):
@@ -23,17 +23,18 @@ def cache_me_if_you_can(expiry=20):
                 print('@@@@@@@@@@@@@@@@@@From Cache')
                 return pickle.loads(cached_value)
 
-            exclusive = cache.set(slug, '__PENDING__', nx=True)
+            exclusive = cache.set(slug, '__PENDING__', nx=True, ex=build_expiry)
             print('@@@@@@@@@@@@@@Cache miss', f'{fn.__module__}.{fn.__name__}', exclusive)
             if not exclusive:
                 gevent.sleep(1)
                 return decorated(**kwargs)
+
             try:
                 response = fn(**kwargs)
             except:
-                raise
-            finally:
                 cache.delete(slug)
+                raise
+
             cached_value = pickle.dumps(response)
             cache.set_value(slug, cached_value, expires_in_sec=expiry)
             return response
