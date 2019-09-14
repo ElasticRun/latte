@@ -24,7 +24,7 @@ def patched_get(*args, **kwargs):
 ```
 
 ##### Gevent BG worker
-This is an drop-in replacement of existing workers. Each worker can process 500 jobs concurrently (subject to max-connections in /etc/mysql/my.cnf). Use following procfile to start using gevent background workers. 
+This is drop-in replacement of existing rq workers. Each gevent worker can process 500 (hardcoded) jobs concurrently (subject to max-connections in /etc/mysql/my.cnf). Use following procfile to start using gevent background workers. 
 ```
 redis_cache: redis-server config/redis_cache.conf
 redis_socketio: redis-server config/redis_socketio.conf
