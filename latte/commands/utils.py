@@ -9,7 +9,6 @@ from watchgod import run_process
 from functools import wraps
 from latte import _dict
 
-
 def pass_context(f):
 	@wraps(f)
 	def _func(ctx, *args, **kwargs):
@@ -87,9 +86,21 @@ def gevent_worker(queue, quiet=False, no_reload=False):
 	# start_worker(queue, quiet=quiet)
 
 def start_gevent_background_worker(queue, quiet):
-	patch_all()
-	from latte.utils.background.gevent_worker import start
-	start(queue, quiet)
+	python_path = os.path.abspath('../env/bin/python')
+	print('Starting gevent background worker for', queue)
+
+	os.execv(python_path, [
+		python_path,
+		'-c',
+		'\n'.join(line.strip() for line in f'''
+			from gevent import monkey
+			monkey.patch_all()
+			from latte.commands.utils import patch_all
+			patch_all()
+			from latte.utils.background.gevent_worker import start
+			start(queue="{queue}", quiet={quiet})
+		'''.split('\n'))
+	])
 
 @click.command('serve')
 @click.option('--port', default=8000)
@@ -114,15 +125,13 @@ def serve(port=None, profile=False, no_reload=False, sites_path='.', site=None):
 @pass_context
 def console(context):
 	"Start ipython console for a site"
-	patch_all()
 	site = get_site(context)
-	import frappe
-	frappe.init(site=site)
-	frappe.connect()
-	frappe.local.lang = frappe.db.get_default("lang")
-	import IPython
-	IPython.embed(display_banner = "")
-
+	ipython_path = os.path.abspath('../env/bin/ipython')
+	os.execve(ipython_path, [
+		ipython_path,
+		'-i',
+		'../apps/latte/ipython_loader.py'
+	], _dict(os.environ).update({'site': site}))
 
 @click.command('redis-flush-on-reload')
 @pass_context
