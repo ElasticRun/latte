@@ -9,7 +9,8 @@ MIT
 ### Features
 
 ##### cache_me_if_you_can
-You can use this method to cache output of any method for x seconds. All you'll have to do is decorate your function. 
+You can use this method to cache output of any method for x seconds. All you'll have to do is decorate your function with `@cache_me_if_you_can`.   
+This will also throttle multiple calls with similar parameters, executing only one call, and serving rest from cache, saving your server from redundant hits.
 ```
 from latte.utils.caching import cache_me_if_you_can
 
