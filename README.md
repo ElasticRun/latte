@@ -8,6 +8,46 @@ MIT
 
 ### Features
 
+##### Reloader
+At dev-time, saving any python file will restart complete server from scratch
+
+##### Better IPythonConsole
+IPythonConsole supports async/await syntax 
+
+##### Lockless Autoname
+Need sequencing without locking? Use following syntax. Might cause gaps in sequence for failed transactions
+```
+from withrun_erpnext.docevents.autoname import lockless_autoname
+
+class ItemisedSalesRegister(Document):
+	def autoname(self):
+		return lockless_autoname(self)
+
+```
+
+##### Indexing
+```
+from latte.utils.indexing import create_index
+def on_doctype_update():
+	create_index('tabItemised Sales Register', ['sales_invoice', 'item_code'])
+```
+or add following in hooks.py
+
+hooks.py
+```
+index_after_migrate = 'withrun_erpnext.utils.index_list'
+```
+
+withrun_erpnext.utils.index_list
+```
+index_list = [
+    ('tabApi Log', 'status'), # Single column index
+    ('tabBeat Plan', ['sales_person', 'date']), # Multi-index
+    create_index('tabFile', 'file_url(200)'), # Only index initial 200 chars
+]
+```
+
+
 ##### cache_me_if_you_can
 You can use this method to cache output of any method for x seconds. All you'll have to do is decorate your function with `@cache_me_if_you_can`.   
 This will also throttle multiple calls with similar parameters, executing only one call, and serving rest from cache, saving your server from redundant hits.
