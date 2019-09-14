@@ -1,12 +1,16 @@
 import frappe
 import json
 from frappe.desk.reportview import get
+from frappe.desk.query_report import run
 from six import string_types
 import pandas as pd
+from latte.utils.caching import cache_me_if_you_can
 
 @frappe.whitelist()
+@frappe.read_only()
+@cache_me_if_you_can(expiry=5)
 def patched_get(*args, **kwargs):
-    print(args, kwargs)
+    # print(args, kwargs)
     doctype = kwargs.get('doctype')
     filters = kwargs.get('filters')
     if isinstance(filters, string_types):
@@ -14,6 +18,12 @@ def patched_get(*args, **kwargs):
     if filters:
         validate_index(doctype, filters)
     return get(*args, **kwargs)
+
+@frappe.whitelist()
+@frappe.read_only()
+@cache_me_if_you_can(expiry=5)
+def patched_run(*args, **kwargs):
+    run(*args, **kwargs)
 
 def validate_index(table_doctype, filters):
     return
