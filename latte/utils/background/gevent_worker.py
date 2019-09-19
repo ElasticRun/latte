@@ -83,14 +83,14 @@ def runner(task):
     log = frappe.logger()
     if isinstance(task.method, string_types):
         task.method = frappe.get_attr(task.method)
-    print(f"Executing function {task.method_name} as part of task execution", len(task.pool))
+    print(f"Executing function {task.method_name} as part of task execution, task pool size :=", len(task.pool))
     try:
         task.method(**task.kwargs)
         frappe.db.commit()
-        print(f"Completed function execution for {task.method_name}")
+        print(f"Completed function execution for {task.method_name}, task pool size :=", len(task.pool))
     except:
         frappe.db.rollback()
-        print(f"Failed function execution for {task.method_name}")
+        print(f"Failed function execution for {task.method_name}, task pool size :=", len(task.pool))
         frappe.log_error(title=task.method_name)
         raise
     finally:
