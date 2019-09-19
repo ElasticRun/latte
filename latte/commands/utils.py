@@ -66,6 +66,42 @@ def latte_worker(queue, quiet=False, no_reload=False):
 		)
 	# start_worker(queue, quiet=quiet)
 
+@click.command('gevent-worker')
+@click.option('--queue', type=str)
+@click.option('--noreload', 'no_reload',is_flag=True, default=False)
+@click.option('--quiet', is_flag = True, default = False, help = 'Hide Log Outputs')
+def gevent_worker(queue, quiet=False, no_reload=False):
+	if not queue:
+		raise Exception('Cannot run worker without queue')
+	if no_reload:
+		start_gevent_background_worker(queue, quiet)
+	else:
+		run_process(
+			'../apps/',
+			start_gevent_background_worker,
+			args=(queue, quiet),
+			min_sleep=4000,
+			callback=show_changes,
+		)
+	# start_worker(queue, quiet=quiet)
+
+def start_gevent_background_worker(queue, quiet):
+	python_path = os.path.abspath('../env/bin/python')
+	print('Starting gevent background worker for', queue)
+
+	os.execv(python_path, [
+		python_path,
+		'-c',
+		'\n'.join(line.strip() for line in f'''
+			from gevent import monkey
+			monkey.patch_all()
+			from latte.commands.utils import patch_all
+			patch_all()
+			from latte.utils.background.gevent_worker import start
+			start(queue="{queue}", quiet={quiet})
+		'''.split('\n'))
+	])
+
 @click.command('serve')
 @click.option('--port', default=8000)
 @click.option('--noreload', "no_reload", is_flag=True, default=False)
@@ -89,15 +125,13 @@ def serve(port=None, profile=False, no_reload=False, sites_path='.', site=None):
 @pass_context
 def console(context):
 	"Start ipython console for a site"
-	patch_all()
 	site = get_site(context)
-	import frappe
-	frappe.init(site=site)
-	frappe.connect()
-	frappe.local.lang = frappe.db.get_default("lang")
-	import IPython
-	IPython.embed(display_banner = "")
-
+	ipython_path = os.path.abspath('../env/bin/ipython')
+	os.execve(ipython_path, [
+		ipython_path,
+		'-i',
+		'../apps/latte/ipython_loader.py'
+	], _dict(os.environ).update({'site': site}))
 
 @click.command('redis-flush-on-reload')
 @pass_context
@@ -120,6 +154,7 @@ def flushall(site):
 
 commands = [
 	latte_worker,
+	gevent_worker,
 	serve,
 	console,
 	watch_for_flush,
