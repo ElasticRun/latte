@@ -23,7 +23,7 @@ def patched_get(*args, **kwargs):
 @frappe.read_only()
 @cache_me_if_you_can(expiry=5)
 def patched_run(*args, **kwargs):
-    run(*args, **kwargs)
+    return run(*args, **kwargs)
 
 def validate_index(table_doctype, filters):
     return
