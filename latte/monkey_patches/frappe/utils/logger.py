@@ -17,8 +17,7 @@ class CustomAttributes(logging.Filter):
 	def filter(self, record):
 		message = frappe._dict()
 		logged_msg = record.msg
-		if frappe.local.conf.log_level == "debug":
-			print(message.msg)
+		# print(logged_msg)
 
 		if isinstance(logged_msg, dict):
 			message.update(logged_msg)

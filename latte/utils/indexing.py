@@ -69,7 +69,7 @@ def create_index(table, columns, unique=False):
 
 def index_all():
     frappe.db.commit()
-    modified()
+    modified_and_owner()
     contact_and_employee()
     field_name()
     lft_rgt_index()
@@ -101,7 +101,7 @@ def index_default_tables():
     create_index('tabUser Permission', ['user', 'applicable_for', 'allow'])
     create_index('tabVersion', ['ref_doctype', 'docname'])
 
-def modified():
+def modified_and_owner():
     tables_to_update = frappe.db.sql_list(f'''
         SELECT
             cols.table_name
@@ -119,6 +119,8 @@ def modified():
     ''')
     for table_name in tables_to_update:
         create_index(table_name, 'modified')
+        create_index(table_name, 'owner')
+        create_index(table_name, 'modified_by')
 
 def contact_and_employee():
     create_index('tabContact', 'user')
