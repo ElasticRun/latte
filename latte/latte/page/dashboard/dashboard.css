@@ -1,0 +1,32 @@
+.dashboard-graph .row {
+    padding: 10px 30px 10px 30px;
+}
+
+.dashboard-graph .row .dashboard-count{
+    border: 1px solid rgba(0,0,0,0.125);
+    height: -webkit-fill-available;
+    text-align: center; 
+    padding: 10px;
+    box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)
+}
+
+.dashboard-graph .row .dashboard-count .big-val {
+    font-size: 7.2rem;
+    line-height: 7.2rem;
+}
+
+
+.datatable .dt-row { 
+    border: 1px solid rgba(0,0,0,0.125);
+    box-shadow: 0px 1px 0px -1px rgba(0,0,0,0.1), 0px 0px 0px 0px rgba(0,0,0,0.14), 0px 1px 2px 0px rgba(0,0,0,0.12);
+    --dt-border-color: white;
+}
+
+.datatable .dt-filter.dt-input {
+    outline: auto;
+    background-color: white;
+}
+
+.datatable {
+    border: 2px solid #eee;
+}

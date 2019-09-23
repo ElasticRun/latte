@@ -3,6 +3,6 @@
 
 frappe.ui.form.on('Dashboard Configuration', {
 	refresh: function (frm) {
-		frm.add_custom_button(__("Show Dashboard"), () => frappe.set_route('wr-dashboard', frm.doc.name));
+		frm.add_custom_button(__("Show Dashboard"), () => frappe.set_route('dashboard', frm.doc.name));
 	}
 });
