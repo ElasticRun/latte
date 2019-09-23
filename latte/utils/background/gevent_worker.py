@@ -56,7 +56,7 @@ async def fetch_jobs(queue):
         await conn.wait_closed()
 
 class Task(object):
-    pool = GeventPool(500)
+    pool = GeventPool(50)
     def __init__(self, site, method, user, method_name, kwargs, **flags):
         self.id = str(uuid4())
         self.site = site

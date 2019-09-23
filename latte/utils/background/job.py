@@ -2,7 +2,7 @@ import frappe
 import time
 import os
 from frappe.utils import cstr
-from frappe.utils.background_jobs import get_queue, queue_timeout
+from frappe.utils.background_jobs import get_queue, queue_timeout, Queue, get_redis_conn
 from six import string_types
 from types import FunctionType, MethodType
 from functools import wraps
@@ -27,7 +27,7 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 	if now or frappe.flags.in_migrate:
 		return frappe.call(method, **kwargs)
 
-	q = get_queue(queue, is_async=is_async)
+	q = Queue(queue, connection=get_redis_conn(), is_async=is_async)
 	if not timeout:
 		timeout = queue_timeout.get(queue) or 300
 

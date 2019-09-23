@@ -130,8 +130,8 @@ scheduler_events = {
 #
 override_whitelisted_methods = {
     # "frappe.desk.doctype.event.event.get_events": "latte.event.get_events"
-    # "frappe.desk.reportview.get": "latte.overrides.desk.reportview.patched_get",
-    # "frappe.desk.query_report.run": "latte.overrides.desk.reportview.patched_run",
+    "frappe.desk.reportview.get": "latte.overrides.desk.reportview.patched_get",
+    "frappe.desk.query_report.run": "latte.overrides.desk.reportview.patched_run",
 }
 
 after_migrate = [
