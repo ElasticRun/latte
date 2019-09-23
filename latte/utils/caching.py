@@ -2,13 +2,18 @@ import frappe
 import inspect
 import pickle
 import gevent
+from frappe.utils.redis_wrapper import RedisWrapper
 
 PENDING = pickle.dumps('__PENDING__')
+
+cache = None
 
 def cache_me_if_you_can(expiry=5, build_expiry=30):
     def decorator(fn):
         arg_names = inspect.getfullargspec(fn).args
         def decorated(*args, **kwargs):
+            logger = frappe.logger()
+            global cache
             for idx, arg in enumerate(args):
                 kwargs[arg_names[idx]] = arg
 
@@ -17,7 +22,14 @@ def cache_me_if_you_can(expiry=5, build_expiry=30):
             site_name = frappe.local.site
             slug = f"{site_name}-{method_name}**{param_slug}"
 
-            cache = frappe.cache()
+            if not cache:
+                if frappe.local.conf.redis_big_cache:
+                    print('BIG CACHE')
+                    cache = RedisWrapper.from_url(frappe.local.conf.redis_big_cache)
+                else:
+                    print('SMALL CACHE')
+                    cache = frappe.cache()
+
             # print('SLUG=', slug)
             cached_value = cache.get(slug)
             # print('Cached Value', cached_value)
@@ -26,7 +38,8 @@ def cache_me_if_you_can(expiry=5, build_expiry=30):
                 if cached_value == '__PENDING__':
                     gevent.sleep(1)
                     return decorated(**kwargs)
-                # print('@@@@@@@@@@@@@@@@@@From Cache', cached_value)
+                # print('@@@@@@@@@@@@@@@@@@From Cache', slug)
+                logger.debug(f'Serving {method_name} from cache')
                 return cached_value
 
             exclusive = cache.set(slug, PENDING, nx=True, ex=build_expiry)
@@ -39,7 +52,7 @@ def cache_me_if_you_can(expiry=5, build_expiry=30):
                 response = fn(**kwargs)
                 # print('Response@@@@@@@@@@@@', response)
             except:
-                # print('DELETING@@@@@@@@', response)
+                cache.delete(slug)
                 raise
 
             cached_value = pickle.dumps(response)

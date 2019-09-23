@@ -1,4 +1,5 @@
 redis_cache: redis-server config/redis_cache.conf
+redis_big_cache: redis-server config/redis_big_cache.conf
 redis_socketio: redis-server config/redis_socketio.conf
 redis_queue: redis-server config/redis_queue.conf
 web: bench serve --port 8000
@@ -12,6 +13,7 @@ worker_short: bench gevent-worker --queue short
 worker_long: bench gevent-worker --queue long
 worker_default: bench gevent-worker --queue default
 worker_fact: bench gevent-worker --queue fact
+worker_gevent_long: bench gevent-worker --queue gevent_long
 #migrator: bench migrate
 #worker_event_dispatcher: bench eventdispatcher --queue kafka_events
 async_event_dispatcher: bench aio-eventdispatcher --queue long
