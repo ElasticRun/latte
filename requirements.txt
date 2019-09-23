@@ -5,3 +5,5 @@ watchgod
 pymysql
 sqlalchemy
 pygelf
+aioredis
+gevent
