@@ -24,10 +24,8 @@ def cache_me_if_you_can(expiry=5, build_expiry=30):
 
             if not cache:
                 if frappe.local.conf.redis_big_cache:
-                    print('BIG CACHE')
                     cache = RedisWrapper.from_url(frappe.local.conf.redis_big_cache)
                 else:
-                    print('SMALL CACHE')
                     cache = frappe.cache()
 
             # print('SLUG=', slug)
@@ -43,14 +41,13 @@ def cache_me_if_you_can(expiry=5, build_expiry=30):
                 return cached_value
 
             exclusive = cache.set(slug, PENDING, nx=True, ex=build_expiry)
-            # print('@@@@@@@@@@@@@@Cache miss', f'{fn.__module__}.{fn.__name__}', exclusive)
+            logger.debug(f'Cache miss for {method_name}')
             if not exclusive:
                 gevent.sleep(1)
                 return decorated(**kwargs)
 
             try:
                 response = fn(**kwargs)
-                # print('Response@@@@@@@@@@@@', response)
             except:
                 cache.delete(slug)
                 raise

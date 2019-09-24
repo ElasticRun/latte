@@ -51,6 +51,7 @@ async def fetch_jobs(queue):
 
             _, _, _, job_kwargs = pickle.loads(zlib.decompress(job_dict.data))
             yield Task(**job_kwargs)
+            await conn.execute('del', f'rq:job:{job_id}')
     finally:
         conn.close()
         await conn.wait_closed()
