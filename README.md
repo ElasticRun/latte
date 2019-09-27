@@ -82,3 +82,28 @@ worker_long: bench gevent-worker --queue long
 worker_default: bench gevent-worker --queue default
 spine_sub: bench aio-eventdispatcher --queue long
 ```
+
+##### Self background jobs
+There are many background jobs which have to processed in **background** but you'd like them to run on same thread, so that they can fetch the data from shared memory directly.
+A typical background jobs transfers data in this manner - pickling, compression, redis push, poll, redis pop, decompression, unpickling. This might be wasteful if your job has large amount of data, or runs as part of regular transactions. 
+
+To address above concerns, we have added a queue called `self`. This queue will process job in same server, in background, using gevent spawn.
+
+eg.
+```
+# A function that runs on every event on any document across frappe
+
+frappe.utils.background_jobs.enqueue(
+        publish_event,
+        doc=doc,
+        docevent=event,
+        extra_args=args,
+        queue='self',
+        enqueue_after_commit=True,
+    )
+```
+
+Caveats:
+1.  This will execute the job in same worker as gunicorn, and will not execute unless worker yields (socket connection or gevent.sleep). Hence, this is only compatible with gevent gunicorn worker.
+2.  If web worker is killed with a sigkill (kill -9), the jobs will fail. Use only sigterm or sigint to kill gunicorn
+3.  When executed on bench console, they'll be executed as regular background jobs, and console is synchronous, and cannot execute gevent tasks while on REPL.
