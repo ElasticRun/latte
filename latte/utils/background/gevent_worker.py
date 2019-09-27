@@ -1,15 +1,13 @@
-import gevent
 import frappe
+
 import asyncio
-import aioredis
-import pickle
-import zlib
 import signal
-from uuid import uuid4
-from frappe.app import _sites_path as SITES_PATH
+
+import aioredis, pickle, zlib
+
 from six import string_types
-from gevent.pool import Pool as GeventPool
 from sys import exit
+from latte.utils.background.job import Task
 
 loop = asyncio.get_event_loop()
 
@@ -22,7 +20,7 @@ def start(queue, quiet):
     loop.run_until_complete(deque_and_enqueue(queue))
 
 async def deque_and_enqueue(queue):
-    async for task in fetch_jobs(queue):
+    async for task in fetch_jobs_from_redis(queue, loop):
         task.process_task()
 
 def graceful_shutdown():
@@ -31,7 +29,7 @@ def graceful_shutdown():
     print('Shutting down, Gracefully=', graceful)
     exit(0 if graceful else 1)
 
-async def fetch_jobs(queue):
+async def fetch_jobs_from_redis(queue, loop):
     try:
         print('Connecting')
         conn = await aioredis.create_connection('redis://localhost:11000', loop=loop)
@@ -51,47 +49,7 @@ async def fetch_jobs(queue):
 
             _, _, _, job_kwargs = pickle.loads(zlib.decompress(job_dict.data))
             yield Task(**job_kwargs)
+            await conn.execute('del', f'rq:job:{job_id}')
     finally:
         conn.close()
         await conn.wait_closed()
-
-class Task(object):
-    pool = GeventPool(500)
-    def __init__(self, site, method, user, method_name, kwargs, **flags):
-        self.id = str(uuid4())
-        self.site = site
-        self.method = method
-        self.user = user
-        if not method_name:
-            if isinstance(method, string_types):
-                method_name = method
-            else:
-                method_name = f'{self.method.__module__}.{self.method.__name__}'
-
-        self.method_name = method_name
-        self.kwargs = kwargs
-        self.flags = flags
-
-    def process_task(self):
-        self.pool.add(gevent.spawn(runner, self))
-
-def runner(task):
-    frappe.init(site=task.site, sites_path=SITES_PATH)
-    frappe.connect()
-    frappe.local.lang = frappe.db.get_default('lang')
-    frappe.db.connect()
-    log = frappe.logger()
-    if isinstance(task.method, string_types):
-        task.method = frappe.get_attr(task.method)
-    print(f"Executing function {task.method_name} as part of task execution", len(task.pool))
-    try:
-        task.method(**task.kwargs)
-        frappe.db.commit()
-        print(f"Completed function execution for {task.method_name}")
-    except:
-        frappe.db.rollback()
-        print(f"Failed function execution for {task.method_name}")
-        frappe.log_error(title=task.method_name)
-        raise
-    finally:
-        frappe.destroy()

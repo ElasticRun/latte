@@ -146,6 +146,25 @@ def watch_for_flush(context):
 		callback=show_changes,
 	)
 
+@click.command('processlist')
+@pass_context
+def processlist(context):
+	import frappe
+	site = get_site(context)
+	frappe.init(site=site)
+	from frappe.commands.utils import find_executable
+	mysql = find_executable('mysql')
+	os.execv(mysql, [
+		mysql,
+		'-u',
+		frappe.conf.db_name,
+		f'-p{frappe.conf.db_password}',
+		'--host',
+		frappe.local.conf.db_host or '127.0.0.1',
+		'-e',
+		'show processlist'
+	])
+
 def flushall(site):
 	import frappe
 	frappe.init(site=site)
@@ -158,4 +177,5 @@ commands = [
 	serve,
 	console,
 	watch_for_flush,
+	processlist,
 ]

@@ -8,4 +8,5 @@ from os import environ
 frappe.init(site=environ['site'])
 frappe.connect()
 frappe.local.lang = frappe.db.get_default("lang")
+frappe.local.flags.ipython = True
 print(f'Loaded site {frappe.local.site}')

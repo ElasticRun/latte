@@ -1,11 +1,16 @@
 import frappe
 import time
 import os
+import gevent
+import redis
 from frappe.utils import cstr
-from frappe.utils.background_jobs import get_queue, queue_timeout
+from frappe.utils.background_jobs import queue_timeout, Queue
+from frappe.app import _sites_path as SITES_PATH
 from six import string_types
 from types import FunctionType, MethodType
 from functools import wraps
+from uuid import uuid4
+from gevent.pool import Pool as GeventPool
 
 def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set_user=None,
 	method_name=None, is_async=True, job_name=None, now=False, enqueue_after_commit=False, **kwargs):
@@ -22,12 +27,11 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 		:param kwargs: keyword arguments to be passed to the method
 	'''
 	# To handle older implementations
-	is_async = kwargs.pop('async', is_async)
+	is_async = not not kwargs.pop('async', is_async)
 
 	if now or frappe.flags.in_migrate:
 		return frappe.call(method, **kwargs)
 
-	q = get_queue(queue, is_async=is_async)
 	if not timeout:
 		timeout = queue_timeout.get(queue) or 300
 
@@ -44,6 +48,7 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 		"job_run_id": job_run_id,
 		"kwargs": kwargs
 	}
+
 	if enqueue_after_commit:
 		if not frappe.flags.enqueue_after_commit:
 			frappe.flags.enqueue_after_commit = []
@@ -51,17 +56,32 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 		frappe.flags.enqueue_after_commit.append({
 			"queue": queue,
 			"is_async": is_async,
-			"q": q,
 			"timeout": timeout,
 			"queue_args": queue_args,
 		})
 		return frappe.flags.enqueue_after_commit
 	else:
-		return q.enqueue_call(
+		if queue == 'self' and not frappe.local.flags.ipython:
+			return Task(**queue_args).process_task()
+
+		return get_queue(queue, is_async).enqueue_call(
 			execute_job,
 			timeout=timeout,
 			kwargs=queue_args,
 		)
+
+def enqueue_after_commit():
+	for job in (frappe.flags.enqueue_after_commit or []):
+		if job.get('queue') == 'self' and not frappe.local.flags.ipython:
+			Task(**job.get('queue_args')).process_task()
+
+		else:
+			get_queue(job['queue'], job['is_async']).enqueue_call(
+				execute_job,
+				timeout=job.get('timeout'),
+				kwargs=job.get('queue_args'),
+			)
+	frappe.flags.enqueue_after_commit = []
 
 def execute_job(site, method, event, job_name, kwargs,
 	method_name=None, user=None, is_async=True, retry=0, job_run_id=None):
@@ -136,7 +156,7 @@ def background(**dec_args):
 		fn_map[key] = fn
 		def decorated(*pos_args, **kw_args):
 			return enqueue(
-				runner,
+				bg_runner,
 				fn_key=key,
 				method_name=key,
 				pos_args=pos_args,
@@ -146,7 +166,77 @@ def background(**dec_args):
 		return decorated
 	return decorator
 
-def runner(fn_key, pos_args, kw_args):
+def bg_runner(fn_key, pos_args, kw_args):
 	if fn_key not in fn_map:
 		frappe.get_attr(fn_key)
 	fn_map.get(fn_key)(*pos_args, **kw_args)
+
+class Task(object):
+	pool = GeventPool(50)
+
+	def __init__(self, site, method, user, method_name, kwargs, **flags):
+		self.id = str(uuid4())
+		self.site = site
+		self.method = method
+		self.user = user
+
+		if not method_name:
+			if isinstance(method, string_types):
+				method_name = method
+			else:
+				method_name = f'{self.method.__module__}.{self.method.__name__}'
+
+		self.method_name = method_name
+		self.kwargs = kwargs
+		self.flags = flags
+
+	def process_task(self):
+		self.pool.add(gevent.spawn(fastrunner, self))
+
+def fastrunner(task):
+	frappe.init(site=task.site, sites_path=SITES_PATH)
+	frappe.connect()
+	frappe.local.lang = frappe.db.get_default('lang')
+	frappe.db.connect()
+	log = frappe.logger()
+	if isinstance(task.method, string_types):
+		task.method = frappe.get_attr(task.method)
+	print(f"Executing function {task.method_name} as part of task execution, task pool size :=", len(task.pool))
+	try:
+		task.method(**task.kwargs)
+		frappe.db.commit()
+		print(f"Completed function execution for {task.method_name}, task pool size :=", len(task.pool))
+	except:
+		frappe.db.rollback()
+		print(f"Failed function execution for {task.method_name}, task pool size :=", len(task.pool))
+		frappe.log_error(title=task.method_name)
+		raise
+	finally:
+		frappe.destroy()
+
+QUEUE_MAP = {}
+
+def get_queue(queue, is_async):
+	queue_async_map = QUEUE_MAP.setdefault(queue, {})
+
+	try:
+		return queue_async_map[is_async]
+	except KeyError:
+		queue_instance = queue_async_map[is_async] = Queue(queue, connection=get_redis_conn(), is_async=is_async)
+		return queue_instance
+
+redis_connection = None
+
+def get_redis_conn():
+	if not hasattr(frappe.local, 'conf'):
+		raise Exception('You need to call frappe.init')
+
+	elif not frappe.local.conf.redis_queue:
+		raise Exception('redis_queue missing in common_site_config.json')
+
+	global redis_connection
+
+	if not redis_connection:
+		redis_connection = redis.from_url(frappe.local.conf.redis_queue)
+
+	return redis_connection
