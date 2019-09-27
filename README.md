@@ -84,10 +84,19 @@ spine_sub: bench aio-eventdispatcher --queue long
 ```
 
 ##### Self background jobs
-There are many background jobs which have to processed in **background** but you'd like them to run on same thread, so that they can fetch the data from shared memory directly.
-A typical background jobs transfers data in this manner - pickling, compression, redis push, poll, redis pop, decompression, unpickling. This might be wasteful if your job has large amount of data, or runs as part of regular transactions. 
+There are many jobs which have to processed in **background** but you'd like them to run on same thread, so that they can fetch the data from shared memory directly.  
+A typical background jobs transfers data in this sequence - 
+*  Pickling the arguments
+*  Pickled data compression
+*  Redis push
+*  Redis poll on BG worker
+*  Redis pop
+*  Decompression
+*  Unpickling 
 
-To address above concerns, we have added a queue called `self`. This queue will process job in same server, in background, using gevent spawn.
+This might be wasteful if your job has large amount of data, or runs as part of regular transactions. 
+
+To address above concerns, we have added a queue called `self`. This queue will process job in same thread, in background, using gevent spawn.
 
 eg.
 ```
@@ -104,6 +113,6 @@ frappe.utils.background_jobs.enqueue(
 ```
 
 Caveats:
-1.  This will execute the job in same worker as gunicorn, and will not execute unless worker yields (socket connection or gevent.sleep). Hence, this is only compatible with gevent gunicorn worker.
-2.  If web worker is killed with a sigkill (kill -9), the jobs will fail. Use only sigterm or sigint to kill gunicorn
-3.  When executed on bench console, they'll be executed as regular background jobs, and console is synchronous, and cannot execute gevent tasks while on REPL.
+1.  This will execute the job in same thread as gunicorn web worker, and job will not execute unless worker yields (socket connection or gevent.sleep). Hence, this is only compatible with gevent gunicorn worker.
+2.  If web worker is killed with a sigkill (kill -9), the enqueued jobs will fail. Use only sigterm or sigint to kill gunicorn
+3.  When executed on bench console, enqueued jobs will be executed as regular background jobs, as console is synchronous, and cannot execute gevent tasks while on REPL mode.
