@@ -13,21 +13,27 @@ class View(Document):
 	def validate(self):
 		if self.is_standard and not self.module:
 			frappe.throw('Module is mandatory to update a view if its standard')
+		self.validate_query()
+
+	def validate_query(self):
+		# Trick to validate query before commit without running actual query
+		ctx, query = self.get_query()
+		frappe.db.sql(f'explain {query}', ctx)
 
 	def on_update(self):
 		export_to_files(self)
 		self.create_view()
 
-	def create_view(self):
+	def get_query(self):
 		ctx = {
 			row.key: (row.value or '') for row in self.ctx
 		}
 		query = self.view_query.format(**ctx)
+		return ctx, query
+
+	def create_view(self):
+		ctx, query = self.get_query()
 		# print(query)
-
-		# Trick to validate query before commit without running actual query
-		frappe.db.sql(f'explain {query}', ctx)
-
 		view_query = f'''
 			CREATE or replace view `{self.name}`
 			as (

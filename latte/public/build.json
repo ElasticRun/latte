@@ -1,0 +1,9 @@
+{
+  "js/latte.min.js": [
+    "public/js/latte.js"
+  ],
+  "js/dashboard.min.js": [
+    "public/js/dashboard/dashboardconfig.js",
+    "public/js/dashboard/dashboarddataslice.js"
+  ]
+}
