@@ -49,7 +49,7 @@ def validate_index(table_doctype, filters):
         if doctype_indices[table_doctype]['primary_cardinality'] < 10000:
             return
         frappe.msgprint(frappe.as_json(doctype_indices))
-        frappe.msgprint('Without index query')
+        frappe.throw('Without index query')
 
 def get_index_meta(doctype):
     import pandas as pd
@@ -61,6 +61,8 @@ def get_index_meta(doctype):
     index_meta = cache.get_value(cache_key)
     if index_meta:
         return index_meta
+    if not frappe.db._conn:
+        frappe.db.connect()
     indexed_columns = pd.read_sql(f'''
         SELECT
             column_name,
@@ -98,13 +100,13 @@ def get_index_meta(doctype):
 
         if append:
             allowed_indices.append(index_row)
-    #         print(scanned_rows)
     allowed_indices = list(set(allowed_indices))
 
     index_meta = {
         'allowed_indices': allowed_indices,
         'primary_cardinality': primary_cardinality,
     }
+    print(index_meta)
     cache.set_value(cache_key, index_meta)
     setattr(frappe.local, cache_key, index_meta)
     return index_meta
