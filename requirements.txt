@@ -7,3 +7,4 @@ sqlalchemy
 pygelf
 aioredis
 gevent
+xlrd==1.2
