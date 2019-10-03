@@ -11,8 +11,3 @@ def json_to_xml(dict_to_convert):
         return ''.join(str(json_to_xml(row)) for row in dict_to_convert)
     else:
         return str(dict_to_convert)
-
-
-
-
-
