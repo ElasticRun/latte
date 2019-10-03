@@ -33,18 +33,6 @@ def set_meta(doc):
     if not (meta.autoname or '').startswith('naming_series:'):
         meta.autoname = 'naming_series:'
 
-def update_series_table(key, value):
-    frappe.db.sql('''
-        UPDATE
-            `tabSeries`
-        set
-            current = %(value)s
-        where
-            name = %(key)s
-            and current < %(value)s
-    ''', locals())
-    frappe.db.commit()
-
 def getseries(naming_series, digits, failures):
     # print('Parsing', naming_series, digits, failures)
     if failures > 5:
@@ -93,6 +81,18 @@ def getseries(naming_series, digits, failures):
 
     # print('value=', ('%0' + str(digits) + 'd') % next_val)
     return  ('%0' + str(digits) + 'd') % next_val
+
+def update_series_table(key, value):
+    frappe.db.sql('''
+        UPDATE
+            `tabSeries`
+        set
+            current = %(value)s
+        where
+            name = %(key)s
+            and current < %(value)s
+    ''', locals())
+    frappe.db.commit()
 
 def get_conn():
     db_instance = Database()

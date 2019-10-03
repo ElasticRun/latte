@@ -66,8 +66,8 @@ frappe.db.get_list('Doc Status Tracker', {
 }).then((doctypes) => {
   doctypes.forEach(({ document_type }) => {
     frappe.ui.form.on(document_type, {
-      async before_save() {
-        await capture_reason(document_type);
+      before_save() {
+        return capture_reason(document_type);
       },
     });
   });

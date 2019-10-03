@@ -29,6 +29,10 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 	# To handle older implementations
 	is_async = not not kwargs.pop('async', is_async)
 
+	if queue == 'self':
+		if not getattr(frappe.local, 'self_worker_compatible', None):
+			queue = 'default'
+
 	if now or frappe.flags.in_migrate:
 		return frappe.call(method, **kwargs)
 
@@ -46,7 +50,9 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 		"job_name": job_name or cstr(method),
 		"is_async": is_async,
 		"job_run_id": job_run_id,
-		"kwargs": kwargs
+		"kwargs": kwargs,
+		"queue": queue,
+		"request_id": frappe.flags.request_id,
 	}
 
 	if enqueue_after_commit:
@@ -61,7 +67,7 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 		})
 		return frappe.flags.enqueue_after_commit
 	else:
-		if queue == 'self' and not frappe.local.flags.ipython:
+		if queue == 'self':
 			return Task(**queue_args).process_task()
 
 		return get_queue(queue, is_async).enqueue_call(
@@ -72,7 +78,7 @@ def enqueue(method, queue='default', timeout=None, event=None, monitor=True, set
 
 def enqueue_after_commit():
 	for job in (frappe.flags.enqueue_after_commit or []):
-		if job.get('queue') == 'self' and not frappe.local.flags.ipython:
+		if job.get('queue') == 'self':
 			Task(**job.get('queue_args')).process_task()
 
 		else:
@@ -174,7 +180,8 @@ def bg_runner(fn_key, pos_args, kw_args):
 class Task(object):
 	pool = GeventPool(50)
 
-	def __init__(self, site, method, user, method_name, kwargs, **flags):
+	def __init__(self, site, method, user, method_name, kwargs, queue, job_run_id,
+		request_id, **flags):
 		self.id = str(uuid4())
 		self.site = site
 		self.method = method
@@ -188,27 +195,34 @@ class Task(object):
 
 		self.method_name = method_name
 		self.kwargs = kwargs
+		self.queue = queue
+		self.request_id = request_id
+		self.job_run_id = job_run_id
 		self.flags = flags
 
 	def process_task(self):
 		self.pool.add(gevent.spawn(fastrunner, self))
 
 def fastrunner(task):
+	frappe.local.self_worker_compatible = True
 	frappe.init(site=task.site, sites_path=SITES_PATH)
+	frappe.flags.request_id = task.request_id
+	frappe.flags.task_id = str(uuid4())
+	frappe.flags.runner_type = f'fastrunner-{task.queue}'
 	frappe.connect()
 	frappe.local.lang = frappe.db.get_default('lang')
 	frappe.db.connect()
 	log = frappe.logger()
 	if isinstance(task.method, string_types):
 		task.method = frappe.get_attr(task.method)
-	print(f"Executing function {task.method_name} as part of task execution, task pool size :=", len(task.pool))
+	log.debug(f"Executing function {task.method_name} as part of task execution, task pool size := {len(task.pool)}")
 	try:
 		task.method(**task.kwargs)
 		frappe.db.commit()
-		print(f"Completed function execution for {task.method_name}, task pool size :=", len(task.pool))
+		log.debug(f"Completed function execution for {task.method_name}, task pool size := {len(task.pool)}")
 	except:
 		frappe.db.rollback()
-		print(f"Failed function execution for {task.method_name}, task pool size :=", len(task.pool))
+		log.debug(f"Failed function execution for {task.method_name}, task pool size := {len(task.pool)}")
 		frappe.log_error(title=task.method_name)
 		raise
 	finally:

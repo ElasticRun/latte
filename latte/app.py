@@ -1,7 +1,16 @@
 from werkzeug.wrappers import Request
 from werkzeug.exceptions import HTTPException, NotFound
 from latte import _dict
-from frappe.app import init_request, handle_exception, after_request
+from frappe.app import (
+	# init_request,
+	handle_exception,
+	after_request,
+	_site,
+	_sites_path,
+	make_form_dict,
+	get_site_name
+)
+from uuid import uuid4
 import frappe
 
 from datetime import datetime
@@ -14,6 +23,7 @@ def application(request):
 	try:
 		rollback = True
 
+		frappe.local.self_worker_compatible = True
 		init_request(request)
 
 		log_info.request_start = frappe.utils.convert_utc_to_user_timezone(log_info.request_start).replace(tzinfo=None)
@@ -66,3 +76,27 @@ def application(request):
 		frappe.destroy()
 
 	return response
+
+def init_request(request):
+	frappe.local.request = request
+	frappe.local.is_ajax = frappe.get_request_header("X-Requested-With")=="XMLHttpRequest"
+
+	site = _site or request.headers.get('X-Frappe-Site-Name') or get_site_name(request.host)
+	frappe.init(site=site, sites_path=_sites_path)
+
+	request_id = frappe.get_request_header('X-Request-Id')
+	if not request_id:
+		request_id = str(uuid4())
+	frappe.flags.task_id = frappe.flags.request_id = request_id
+	frappe.flags.runner_type = 'web'
+
+	if not (frappe.local.conf and frappe.local.conf.db_name):
+		# site does not exist
+		raise NotFound
+
+	if frappe.local.conf.get('maintenance_mode'):
+		raise frappe.SessionStopped
+
+	make_form_dict(request)
+
+	frappe.local.http_request = frappe.auth.HTTPRequest()

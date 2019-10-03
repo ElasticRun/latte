@@ -23,22 +23,19 @@ class CustomAttributes(logging.Filter):
 			message.update(logged_msg)
 		elif isinstance(logged_msg, Document):
 			message.update(logged_msg.as_dict())
+		else:
+			message['info'] = logged_msg
 
-		request_id = None
 		frappe.local.flags.request_id_number = (frappe.local.flags.request_id_number or 0) + 1
-		if hasattr(frappe.local, 'request'):
-			request_id = frappe.local.request.headers.get('X-Request-Id')
-			message.request_id_type = 'From Header'
 
-		if not request_id:
-			request_id = frappe.flags.request_id
-			message.request_id_type = 'From Flag'
+		request_id = frappe.flags.request_id
 
 		if not request_id:
 			request_id = frappe.flags.request_id = str(uuid.uuid4())
-			message.request_id_type = 'Created'
 
 		message.request_id = request_id
+		message.task_id = frappe.flags.task_id
+		message.runner_type = frappe.flags.runner_type
 		message.module = self.__module
 		message.log_number = frappe.local.flags.request_id_number
 		message.site = getattr(frappe.local, 'site', None)
